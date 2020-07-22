@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<application xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="application">
+  <jobTemplates>
+    <jobTemplate id="hazard-index">
+        <defaultParameters>
+           <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime"></parameter>
+           <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime"></parameter>
+       </defaultParameters>
+      <streamingExecutable>/application/hazard-index/run.py</streamingExecutable>
+        <defaultJobconf>
+         <property id="ciop.job.max.tasks">1</property>
+      </defaultJobconf>
+    </jobTemplate>
+  </jobTemplates>
+    <workflow id="ewf-wfp-03-02-01" title="Rainfall-related Hazard Index" abstract="Rainfall-related Hazard Index">
+    <workflowVersion>1.0</workflowVersion>
+    <node id="hazard-index">
+      <job id="hazard-index"/>
+      <sources>
+        <source id="source" title="CHIRPS dekad" abstract="CHIRPS dekad" refid="string:list" scope="runtime">https://catalog.terradue.com/chirps_dekad/search?uid=</source>
+      </sources>
+    </node>
+  </workflow>
+</application>

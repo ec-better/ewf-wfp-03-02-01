@@ -1,0 +1,11 @@
+name: env_hazard_index
+channels:
+  - defaults
+  - terradue
+  - conda-forge
+dependencies:
+  - xarray
+  - cioppy
+  - pandas
+  - numpy
+  - rioxarray
