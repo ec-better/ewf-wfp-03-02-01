@@ -30,38 +30,26 @@ def clean_exit(exit_code):
 
 
 
-def get_vsi_url(item, username=None, api_key=None):
+def get_vsi_url(enclosure, username=None, api_key=None):
 
-    #endpoint = 'https://nx10438.your-storageshare.de/remote.php/webdav/ogc-tb16/s5p/tropospheric_NO2_column_number_density/'
-    endpoint = 'https://store.terradue.com:443/api/ogc-tb16/s5p/tropospheric_NO2_column_number_density/'
-    #https://store.terradue.com:443/api/chirps-dekad/2020/files/v1/chirps-v2.0.2020.01.1.tif.gz
-    #/vsigzip//vsicurl/https://store.terradue.com:443/api/chirps-dekad/2020/files/v1/chirps-v2.0.2020.01.1.tif.gz
-    
-    parsed_url = urlparse(endpoint)
+    parsed_url = urlparse(enclosure)
 
     if username is not None:
-        url = '/vsigzip//vsicurl/%s://%s:%s@%s%s%s' % (list(parsed_url)[0],
+        url = '/vsigzip//vsicurl/%s://%s:%s@%s%s' % (list(parsed_url)[0],
                                                        username,
                                                        api_key,
                                                        list(parsed_url)[1],
-                                                       list(parsed_url)[2],
-                                                       item)
+                                                       list(parsed_url)[2])
 
     else:
 
-        url = '/vsigzip//vsicurl/%s://%s%s%s' % (list(parsed_url)[0],
+        url = '/vsigzip//vsicurl/%s://%s%s' % (list(parsed_url)[0],
                                             list(parsed_url)[1],
-                                            list(parsed_url)[2],
-                                            item)
+                                            list(parsed_url)[2])
 
 
     return url
 
-
-
-    
-    
-    
 def to_ds(search, username, api_key):
     
     chirps_ds = []
@@ -228,10 +216,10 @@ def main():
     
     ciop.log('Save as geotiff')
     
-    output_name = 'rainfall_hazard_index_{}_{}'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
+    output_name = 'rainfall_hazard_index_{}_{}.nc'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
                                                        search['enddate_dt'].max().strftime('%Y_%m_%d'))
     
-    q.rio.to_raster(output_name)
+    q.to_netcdf(output_name)
     
     ciop.log('Publish geotiff')
     

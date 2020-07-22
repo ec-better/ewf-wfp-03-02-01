@@ -17,7 +17,7 @@
     <node id="hazard-index">
       <job id="hazard-index"/>
       <sources>
-        <source id="source" title="CHIRPS dekad" abstract="CHIRPS dekad" refid="string:list" scope="runtime">https://catalog.terradue.com/chirps_dekad/search?uid=</source>
+        <source id="source" title="CHIRPS dekad" abstract="CHIRPS dekad" refid="string:list" scope="runtime">https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.3,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.02.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.02.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.02.3,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.03.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.03.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.03.3,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.04.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.04.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.04.3,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.05.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.05.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.05.3</source>
       </sources>
     </node>
   </workflow>
