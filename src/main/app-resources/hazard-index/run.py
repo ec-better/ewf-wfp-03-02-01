@@ -5,7 +5,9 @@ import cioppy
 import xarray as xr
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 import datetime
+import sys
 from urllib.parse import urlparse
 
 
@@ -13,6 +15,8 @@ SUCCESS = 0
 ERR_RESOLUTION = 10
 ERR_STAGEIN = 20
 ERR_NO_OUTPUT = 30
+
+ciop = cioppy.Cioppy()
 
 # add a trap to exit gracefully
 def clean_exit(exit_code):
@@ -144,39 +148,45 @@ def inv_logit(p):
 
 def main():
     
-    ciop = cioppy.Cioppy()
-    
-    
     parameters = dict()
     
-    parameters['username'] = ciop.getparam('_T2Username')
-    parameters['api_key'] = ciop.getparam('_T2ApiKey')
+    parameters['username'] = None if ciop.getparam('_T2Username') == '' else ciop.getparam('_T2Username')
+    parameters['api_key'] = None if ciop.getparam('_T2ApiKey') == '' else ciop.getparam('_T2ApiKey')
 
-    
-    enclosures = []
-    
-    creds = '{}:{}'.format(parameters['username'],
-                           parameters['api_key'])
-
-    
+    ciop.log('INFO', 'username: "{}"'.format(parameters['username']))
+   
     search_params = dict()
     
     temp_results = []
     
     for line in sys.stdin:
         
-        entry = cioppy.search(end_point=line.rstrip(),
-                               params=search_params,
-                               output_fields='self,startdate,enddate,enclosure,title',
-                               model='GeoTime',
-                               timeout=1200000,
-                               creds=creds)[0]
+        ciop.log('INFO', 'Line: {}'.format(line.rstrip()))
+        
+        
+        if parameters['username'] is not None:
+            
+            creds = '{}:{}'.format(parameters['username'],
+                                   parameters['api_key'])
+        
+            entry = ciop.search(end_point=line.rstrip(),
+                                   params=search_params,
+                                   output_fields='self,startdate,enddate,enclosure,title',
+                                   model='GeoTime',
+                                   timeout=1200000,
+                                   creds=creds)[0]
+           
+        else:
     
-        enclosures.append(search['enclosure'])
+            entry = ciop.search(end_point=line.rstrip(),
+                                   params=search_params,
+                                   output_fields='self,startdate,enddate,enclosure,title',
+                                   model='GeoTime',
+                                   timeout=1200000)[0]
         
         temp_results.append(entry)  
 
-    search = gp.GeoDataFrame(temp_results)
+    search = gpd.GeoDataFrame(temp_results)
     
     # Convert startdate to pd.datetime and sort by date
     search['startdate_dt'] = pd.to_datetime(search.startdate)
@@ -185,7 +195,7 @@ def main():
     search = search.sort_values(by='startdate_dt')
     
     
-    ciop.log('Create xarray dataset')
+    ciop.log('INFO', 'Create xarray dataset')
     ds = to_ds(search,
                username=parameters['username'], 
                api_key=parameters['api_key'])
@@ -197,7 +207,7 @@ def main():
                                  ds['rainfall'])
     
     
-    ciop.log('Get weights')
+    ciop.log('INFO', 'Get weights')
     w = get_weights(ds)
     
     ciop.log('pixel-wise weighted percentile')
@@ -211,16 +221,25 @@ def main():
     vfunc_inv_logit = np.vectorize(inv_logit,
                                    otypes=[np.float64])
     
-    ciop.log('Precipitation hazard index')
+    ciop.log('INFO', 'Precipitation hazard index')
     q = 100 * vfunc_inv_logit(teta)
     
-    ciop.log('Save as geotiff')
+    ciop.log('INFO', 'Save as geotiff')
     
     output_name = 'rainfall_hazard_index_{}_{}.nc'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
                                                        search['enddate_dt'].max().strftime('%Y_%m_%d'))
     
     q.to_netcdf(output_name)
     
-    ciop.log('Publish geotiff')
+    ciop.log('INFO', 'Publish geotiff')
     
     ciop.publish(output_name)
+    
+try:
+    main()
+except SystemExit as e:
+    if e.args[0]:
+        clean_exit(e.args[0])
+    raise
+else:
+    atexit.register(clean_exit, 0)

@@ -2,11 +2,11 @@
 <application xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="application">
   <jobTemplates>
     <jobTemplate id="hazard-index">
+        <streamingExecutable>/application/hazard-index/run.py</streamingExecutable>
         <defaultParameters>
            <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime"></parameter>
            <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime"></parameter>
        </defaultParameters>
-      <streamingExecutable>/application/hazard-index/run.py</streamingExecutable>
         <defaultJobconf>
          <property id="ciop.job.max.tasks">1</property>
       </defaultJobconf>
