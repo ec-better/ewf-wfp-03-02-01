@@ -11,7 +11,7 @@ import datetime
 import sys
 import gdal
 from urllib.parse import urlparse
-
+import os
 
 SUCCESS = 0
 ERR_RESOLUTION = 10
@@ -149,7 +149,7 @@ def inv_logit(p):
     return np.exp(p) / float(1 + np.exp(p))
 
 def main():
-    
+    os.chdir(ciop.tmp_dir)
     parameters = dict()
     
     parameters['username'] = None if ciop.getparam('_T2Username') == '' else ciop.getparam('_T2Username')
@@ -212,6 +212,10 @@ def main():
     temp_ds = None
     
     # compute impirical percentile for each pixel over the vector 'date'
+    
+    #my_test=ds['rainfall'][:,400:1000,4000:4600]
+    #ds_date_index,ds_x_index, ds_y_index= my_test.shape
+    
     ds_date_index,ds_x_index, ds_y_index= ds['rainfall'].shape
     result=np.zeros((ds_date_index,ds_x_index,ds_y_index),dtype=float)
     x_block=int(np.ceil(ds_x_index/1000))
@@ -227,11 +231,15 @@ def main():
             if x_high>ds_x_index:
                 x_high=ds_x_index
             if y_high>ds_y_index:
-                y_high=ds_y_index     
-
+                y_high=ds_y_index   
+                
             result[:,x_low:x_high,y_low:y_high] = np.apply_along_axis(percentile, 
                                  0, 
                                  ds['rainfall'][:,x_low:x_high,y_low:y_high])
+
+#            result[:,x_low:x_high,y_low:y_high] = np.apply_along_axis(percentile, 
+#                                 0, 
+#                                 my_test[:,x_low:x_high,y_low:y_high])
     
 
     
@@ -259,7 +267,7 @@ def main():
     
     ciop.log('DEBUG', 'Save as geotiff')
     
-    output_name = 'rainfall_hazard_index_{}_{}.nc'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
+    output_name = 'rainfall_hazard_index_{}_{}.tif'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
                                                        search['enddate_dt'].max().strftime('%Y_%m_%d'))
     
     
@@ -284,7 +292,7 @@ def main():
     
     ciop.log('DEBUG', 'Publish geotiff')
     
-    ciop.publish(output_name)
+    ciop.publish(os.path.join(ciop.tmp_dir, output_name), metalink=True)
     
 try:
     main()
