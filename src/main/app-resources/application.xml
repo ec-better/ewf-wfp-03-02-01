@@ -4,8 +4,8 @@
     <jobTemplate id="hazard-index">
         <streamingExecutable>/application/hazard-index/run.py</streamingExecutable>
         <defaultParameters>
-           <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime"></parameter>
-           <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime"></parameter>
+           <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime">better-wfp-03-02-01</parameter>
+           <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime">AKCp5ekcV3h4Gx5earMaXXnq7ESSvHkHHMjsQBUGMJV6y9n1WKc4Qe8SHwU2oW3FA9tMCwAFj</parameter>
        </defaultParameters>
         <defaultJobconf>
          <property id="ciop.job.max.tasks">1</property>
@@ -17,7 +17,7 @@
     <node id="hazard-index">
       <job id="hazard-index"/>
       <sources>
-        <source id="source" title="CHIRPS dekad" abstract="CHIRPS dekad" refid="string:list" scope="runtime">https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.3,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.02.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.02.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.02.3,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.03.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.03.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.03.3,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.04.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.04.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.04.3,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.05.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.05.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.05.3</source>
+        <source id="source" title="CHIRPS dekad" abstract="CHIRPS dekad" refid="string:list" scope="runtime">https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.3</source>
       </sources>
     </node>
   </workflow>
