@@ -9,7 +9,6 @@ dependencies:
   - geopandas
   - ipykernel
   - ipython
-  - ld_impl_linux-64=2.34=h53a641e_7
   - lxml
   - numpy
   - pandas
