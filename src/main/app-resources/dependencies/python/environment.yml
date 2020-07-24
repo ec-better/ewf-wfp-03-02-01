@@ -3,13 +3,13 @@ channels:
   - terradue
   - conda-forge
   - defaults
-  - cf-staging
 dependencies:
   - cioppy=0.3.7
   - gdal=3.0.4
   - geopandas
   - ipykernel
   - ipython
+  - ld_impl_linux-64=2.34=h53a641e_7
   - lxml
   - numpy
   - pandas
