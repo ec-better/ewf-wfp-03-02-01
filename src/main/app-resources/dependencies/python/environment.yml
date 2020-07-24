@@ -3,29 +3,17 @@ channels:
   - terradue
   - conda-forge
   - defaults
+  - cf-staging
 dependencies:
-  - certifi
   - cioppy=0.3.7
-  - curl
-  - decorator
   - gdal=3.0.4
   - geopandas
-  - geos
   - ipykernel
   - ipython
-  - ipython_genutils
-  - jupyter_client
-  - jupyter_core
-  - libcurl
-  - libxml2
-  - libxslt
   - lxml
   - numpy
   - pandas
-  - pickleshare
-  - pip
-  - postgresql
-  - proj=7.0.0
+  - proj
   - pyproj
   - python=3.7.6
   - shapely
