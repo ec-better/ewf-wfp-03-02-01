@@ -11,7 +11,7 @@
     <version>1.2</version>
   </parent>
   <description>Rainfall-related Hazard Index</description>
-  <version>0.2-SNAPSHOT</version>
+  <version>0.2</version>
   <properties>
     <summary>Rainfall-related Hazard Index</summary>
     <description>Rainfall-related Hazard Index</description>
