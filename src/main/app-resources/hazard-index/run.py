@@ -2,17 +2,23 @@
 
 import atexit
 import cioppy
+ciop = cioppy.Cioppy()
 import xarray as xr
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 import datetime
+import sys
+import gdal
 from urllib.parse import urlparse
-
+import os
 
 SUCCESS = 0
 ERR_RESOLUTION = 10
 ERR_STAGEIN = 20
 ERR_NO_OUTPUT = 30
+
+ciop = cioppy.Cioppy()
 
 # add a trap to exit gracefully
 def clean_exit(exit_code):
@@ -30,38 +36,26 @@ def clean_exit(exit_code):
 
 
 
-def get_vsi_url(item, username=None, api_key=None):
+def get_vsi_url(enclosure, username=None, api_key=None):
 
-    #endpoint = 'https://nx10438.your-storageshare.de/remote.php/webdav/ogc-tb16/s5p/tropospheric_NO2_column_number_density/'
-    endpoint = 'https://store.terradue.com:443/api/ogc-tb16/s5p/tropospheric_NO2_column_number_density/'
-    #https://store.terradue.com:443/api/chirps-dekad/2020/files/v1/chirps-v2.0.2020.01.1.tif.gz
-    #/vsigzip//vsicurl/https://store.terradue.com:443/api/chirps-dekad/2020/files/v1/chirps-v2.0.2020.01.1.tif.gz
-    
-    parsed_url = urlparse(endpoint)
+    parsed_url = urlparse(enclosure)
 
     if username is not None:
-        url = '/vsigzip//vsicurl/%s://%s:%s@%s%s%s' % (list(parsed_url)[0],
+        url = '/vsigzip//vsicurl/%s://%s:%s@%s%s' % (list(parsed_url)[0],
                                                        username,
                                                        api_key,
                                                        list(parsed_url)[1],
-                                                       list(parsed_url)[2],
-                                                       item)
+                                                       list(parsed_url)[2])
 
     else:
 
-        url = '/vsigzip//vsicurl/%s://%s%s%s' % (list(parsed_url)[0],
+        url = '/vsigzip//vsicurl/%s://%s%s' % (list(parsed_url)[0],
                                             list(parsed_url)[1],
-                                            list(parsed_url)[2],
-                                            item)
+                                            list(parsed_url)[2])
 
 
     return url
 
-
-
-    
-    
-    
 def to_ds(search, username, api_key):
     
     chirps_ds = []
@@ -87,7 +81,7 @@ def to_ds(search, username, api_key):
     return ds
 
 def get_weights(ds):
-    
+    w=[]
     zigma=ds['rainfall'].sum(dim=['date'])
     
     for index, d in enumerate(ds['rainfall'].date.values):
@@ -155,40 +149,46 @@ def inv_logit(p):
     return np.exp(p) / float(1 + np.exp(p))
 
 def main():
-    
-    ciop = cioppy.Cioppy()
-    
-    
+    os.chdir(ciop.tmp_dir)
     parameters = dict()
     
-    parameters['username'] = ciop.getparam('_T2Username')
-    parameters['api_key'] = ciop.getparam('_T2ApiKey')
+    parameters['username'] = None if ciop.getparam('_T2Username') == '' else ciop.getparam('_T2Username')
+    parameters['api_key'] = None if ciop.getparam('_T2ApiKey') == '' else ciop.getparam('_T2ApiKey')
 
-    
-    enclosures = []
-    
-    creds = '{}:{}'.format(parameters['username'],
-                           parameters['api_key'])
-
-    
+    ciop.log('INFO', 'username: "{}"'.format(parameters['username']))
+   
     search_params = dict()
     
     temp_results = []
     
     for line in sys.stdin:
         
-        entry = cioppy.search(end_point=line.rstrip(),
-                               params=search_params,
-                               output_fields='self,startdate,enddate,enclosure,title',
-                               model='GeoTime',
-                               timeout=1200000,
-                               creds=creds)[0]
+        ciop.log('INFO', 'Line: {}'.format(line.rstrip()))
+        
+        
+        if parameters['username'] is not None:
+            
+            creds = '{}:{}'.format(parameters['username'],
+                                   parameters['api_key'])
+        
+            entry = ciop.search(end_point=line.rstrip(),
+                                   params=search_params,
+                                   output_fields='self,startdate,enddate,enclosure,title',
+                                   model='GeoTime',
+                                   timeout=1200000,
+                                   creds=creds)[0]
+           
+        else:
     
-        enclosures.append(search['enclosure'])
+            entry = ciop.search(end_point=line.rstrip(),
+                                   params=search_params,
+                                   output_fields='self,startdate,enddate,enclosure,title',
+                                   model='GeoTime',
+                                   timeout=1200000)[0]
         
         temp_results.append(entry)  
 
-    search = gp.GeoDataFrame(temp_results)
+    search = gpd.GeoDataFrame(temp_results)
     
     # Convert startdate to pd.datetime and sort by date
     search['startdate_dt'] = pd.to_datetime(search.startdate)
@@ -197,23 +197,62 @@ def main():
     search = search.sort_values(by='startdate_dt')
     
     
-    ciop.log('Create xarray dataset')
+    ciop.log('DEBUG', 'Create xarray dataset')
     ds = to_ds(search,
                username=parameters['username'], 
                api_key=parameters['api_key'])
     
     
+    
+    # Geo-Info reterived from input
+    temp = get_vsi_url(search.iloc[0]['enclosure'], parameters['username'], parameters['api_key'])
+    temp_ds = gdal.Open(temp)
+    geo_transform = temp_ds.GetGeoTransform()
+    projection = temp_ds.GetProjection()
+    temp_ds = None
+    
     # compute impirical percentile for each pixel over the vector 'date'
-    result = np.apply_along_axis(percentile, 
+    
+    #my_test=ds['rainfall'][:,400:1000,4000:4600]
+    #ds_date_index,ds_x_index, ds_y_index= my_test.shape
+    
+    ds_date_index,ds_x_index, ds_y_index= ds['rainfall'].shape
+    result=np.zeros((ds_date_index,ds_x_index,ds_y_index),dtype=float)
+    x_block=int(np.ceil(ds_x_index/1000))
+    y_block=int(np.ceil(ds_y_index/1000))
+    
+    for i in range(x_block):
+        for j in range(y_block):
+            
+            x_low=1000*(i)
+            x_high=1000*(i+1)
+            y_low=1000*(j)
+            y_high=1000*(j+1)
+            if x_high>ds_x_index:
+                x_high=ds_x_index
+            if y_high>ds_y_index:
+                y_high=ds_y_index   
+                
+            result[:,x_low:x_high,y_low:y_high] = np.apply_along_axis(percentile, 
                                  0, 
-                                 ds['rainfall'])
+                                 ds['rainfall'][:,x_low:x_high,y_low:y_high])
+
+#            result[:,x_low:x_high,y_low:y_high] = np.apply_along_axis(percentile, 
+#                                 0, 
+#                                 my_test[:,x_low:x_high,y_low:y_high])
+    
+
     
     
-    ciop.log('Get weights')
+    
+    
+    ciop.log('DEBUG', 'Get weights')
     w = get_weights(ds)
     
-    ciop.log('pixel-wise weighted percentile')
+    ciop.log('DEBUG','pixel-wise weighted percentile')
     # pixel-wise weighted percentile 
+    teta=np.zeros((result.shape[1],result.shape[2]),dtype=float)
+    
     for i in range(result.shape[1]):
         for j in range(result.shape[2]):
             
@@ -223,16 +262,43 @@ def main():
     vfunc_inv_logit = np.vectorize(inv_logit,
                                    otypes=[np.float64])
     
-    ciop.log('Precipitation hazard index')
+    ciop.log('DEBUG', 'Precipitation hazard index')
     q = 100 * vfunc_inv_logit(teta)
     
-    ciop.log('Save as geotiff')
+    ciop.log('DEBUG', 'Save as geotiff')
     
-    output_name = 'rainfall_hazard_index_{}_{}'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
+    output_name = 'rainfall_hazard_index_{}_{}.tif'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
                                                        search['enddate_dt'].max().strftime('%Y_%m_%d'))
     
-    q.rio.to_raster(output_name)
     
-    ciop.log('Publish geotiff')
     
-    ciop.publish(output_name)
+    cols=q.shape[1]
+    rows=q.shape[0]
+    drv = gdal.GetDriverByName('GTiff')
+
+    ds_tif = drv.Create(output_name, 
+                        cols, rows, 
+                        1, 
+                        gdal.GDT_Float32)
+
+        
+    ds_tif.SetGeoTransform(geo_transform)
+    ds_tif.SetProjection(projection)
+    ds_tif.GetRasterBand(1).WriteArray(q)
+    ds_tif.GetRasterBand(1).SetDescription('Q')
+    ds_tif.FlushCache()
+    
+    
+    
+    ciop.log('DEBUG', 'Publish geotiff')
+    
+    ciop.publish(os.path.join(ciop.tmp_dir, output_name), metalink=True)
+    
+try:
+    main()
+except SystemExit as e:
+    if e.args[0]:
+        clean_exit(e.args[0])
+    raise
+else:
+    atexit.register(clean_exit, 0)
