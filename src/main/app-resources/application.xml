@@ -9,6 +9,7 @@
        </defaultParameters>
         <defaultJobconf>
          <property id="ciop.job.max.tasks">1</property>
+         <property id="mapred.task.timeout">9900000000000</property>   
       </defaultJobconf>
     </jobTemplate>
   </jobTemplates>
