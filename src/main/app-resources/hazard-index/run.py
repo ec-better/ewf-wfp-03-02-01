@@ -18,7 +18,6 @@ ERR_RESOLUTION = 10
 ERR_STAGEIN = 20
 ERR_NO_OUTPUT = 30
 
-ciop = cioppy.Cioppy()
 
 # add a trap to exit gracefully
 def clean_exit(exit_code):
@@ -148,47 +147,113 @@ def inv_logit(p):
     '''maps from the linear predictor to the probabilities'''
     return np.exp(p) / float(1 + np.exp(p))
 
+
+def cog(input_tif, output_tif):
+    
+    translate_options = gdal.TranslateOptions(gdal.ParseCommandLine('-co TILED=YES ' \
+                                                                    '-co COPY_SRC_OVERVIEWS=YES ' \
+                                                                    ' -co COMPRESS=LZW'))
+
+    ds = gdal.Open(input_tif, gdal.OF_READONLY)
+
+    gdal.SetConfigOption('COMPRESS_OVERVIEW', 'DEFLATE')
+    ds.BuildOverviews('NEAREST', [2,4,8,16,32])
+    
+    ds = None
+
+    ds = gdal.Open(input_tif)
+    gdal.Translate(output_tif,
+                   ds, 
+                   options=translate_options)
+    ds = None
+
+    os.remove('{}.ovr'.format(input_tif))
+    os.remove(input_tif)
+
+
 def main():
     os.chdir(ciop.tmp_dir)
     parameters = dict()
     
     parameters['username'] = None if ciop.getparam('_T2Username') == '' else ciop.getparam('_T2Username')
     parameters['api_key'] = None if ciop.getparam('_T2ApiKey') == '' else ciop.getparam('_T2ApiKey')
-
+    
     ciop.log('INFO', 'username: "{}"'.format(parameters['username']))
-   
+    
+    #RBN: POLYGON ((23.90 -5.90, 23.90 18.30, 51.74 18.32, 51.74 -5.91, 23.90 -5.91))
+    parameters['bbox'] = ciop.getparam('bbox').split(',')
+    ulx = float(parameters['bbox'][0])
+    uly = float(parameters['bbox'][1])
+    lrx = float(parameters['bbox'][2])
+    lry = float(parameters['bbox'][3])
+    
     search_params = dict()
     
-    temp_results = []
+###################################################################################################
+    # This is the version for tg-queue-one-time-series needed for the time-series productions 
+    #
     
-    for line in sys.stdin:
-        
-        ciop.log('INFO', 'Line: {}'.format(line.rstrip()))
-        
-        
-        if parameters['username'] is not None:
-            
-            creds = '{}:{}'.format(parameters['username'],
-                                   parameters['api_key'])
-        
-            entry = ciop.search(end_point=line.rstrip(),
-                                   params=search_params,
-                                   output_fields='self,startdate,enddate,enclosure,title',
-                                   model='GeoTime',
-                                   timeout=1200000,
-                                   creds=creds)[0]
-           
-        else:
+    parameters['series_startdate'] = ciop.getparam('series_start_date')
+    parameters['series_enddate'] = ciop.getparam('series_end_date')
+    parameters['catalogue_osd'] = ciop.getparam('catalogue_osd')
     
-            entry = ciop.search(end_point=line.rstrip(),
-                                   params=search_params,
-                                   output_fields='self,startdate,enddate,enclosure,title',
-                                   model='GeoTime',
-                                   timeout=1200000)[0]
-        
-        temp_results.append(entry)  
-
-    search = gpd.GeoDataFrame(temp_results)
+    search_params['start'] = ciop.getparam('series_startdate')
+    search_params['stop'] = ciop.getparam('series_enddate')
+    search_params['count'] = 'unlimited'
+    
+    ciop.log('INFO', 'Looking for data from {} to {}:'.format(search_params['start'],search_params['stop']))
+    
+    if parameters['username'] is not None:
+        creds = '{}:{}'.format(parameters['username'],
+                               parameters['api_key'])
+        search = pd.DataFrame(ciop.search(end_point=parameters['catalogue_osd'],
+                                          params=search_params,
+                                          output_fields='self,startdate,enddate,enclosure,title',
+                                          model='GeoTime',
+                                          timeout=1200000,
+                                          creds=creds))
+    else:
+        search = pd.DataFrame(ciop.search(end_point=parameters['catalogue_osd'],
+                                          params=search_params,
+                                          output_fields='self,startdate,enddate,enclosure,title',
+                                          model='GeoTime',
+                                          timeout=1200000))
+    ciop.log('INFO', 'Inputs: \n')
+    for row in search.iterrows():
+        ciop.log('INFO', row[1]['self'])
+    
+#    temp_results = []
+#    
+#    for line in sys.stdin:
+#        
+#        ciop.log('INFO', 'Line: {}'.format(line.rstrip()))
+#        
+#        
+#        if parameters['username'] is not None:
+#            
+#            creds = '{}:{}'.format(parameters['username'],
+#                                   parameters['api_key'])
+#        
+#            entry = ciop.search(end_point=line.rstrip(),
+#                                   params=search_params,
+#                                   output_fields='self,startdate,enddate,enclosure,title',
+#                                   model='GeoTime',
+#                                   timeout=1200000,
+#                                   creds=creds)[0]
+#           
+#        else:
+#        
+#            entry = ciop.search(end_point=line.rstrip(),
+#                                   params=search_params,
+#                                   output_fields='self,startdate,enddate,enclosure,title',
+#                                   model='GeoTime',
+#                                   timeout=1200000)[0]
+#        
+#        temp_results.append(entry)  
+#
+#    search = gpd.GeoDataFrame(temp_results)
+#    
+####################################################################################################
     
     # Convert startdate to pd.datetime and sort by date
     search['startdate_dt'] = pd.to_datetime(search.startdate)
@@ -265,18 +330,18 @@ def main():
     ciop.log('DEBUG', 'Precipitation hazard index')
     q = 100 * vfunc_inv_logit(teta)
     
-    ciop.log('DEBUG', 'Save as geotiff')
     
-    output_name = 'rainfall_hazard_index_{}_{}.tif'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
-                                                       search['enddate_dt'].max().strftime('%Y_%m_%d'))
+    temp_output_name = 'temp_rainfall_hazard_index_{}_{}_{}.tif'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
+                                                                        search['enddate_dt'].max().strftime('%Y_%m_%d'),
+                                                                        '_'.join(parameters['bbox']))
     
-    
+    ciop.log('DEBUG', 'Save as temp geotiff: {}'.format(temp_output_name))
     
     cols=q.shape[1]
     rows=q.shape[0]
     drv = gdal.GetDriverByName('GTiff')
 
-    ds_tif = drv.Create(output_name, 
+    ds_tif = drv.Create(temp_output_name, 
                         cols, rows, 
                         1, 
                         gdal.GDT_Float32)
@@ -286,13 +351,34 @@ def main():
     ds_tif.SetProjection(projection)
     ds_tif.GetRasterBand(1).WriteArray(q)
     ds_tif.GetRasterBand(1).SetDescription('Q')
+    #ds_tif.FlushCache()
+    
+    
+    
+    output_name = '_'.join(temp_output_name.split('_')[1:])
+    
+    ciop.log('INFO', 'Creating AOI-cropped GeoTiff: {}'.format(output_name))
+                                                                    
+    ds = gdal.Open(temp_output_name, gdal.OF_READONLY)
+    ds = gdal.Translate(output_name, 
+                        ds_tif, 
+                        projWin = [ulx, uly, lrx, lry], 
+                        projWinSRS = 'EPSG:4326')
+    
+    ds=None
     ds_tif.FlushCache()
     
+    os.remove(temp_output_name)
     
+    cog_output = 'COG_{}'.format(output_name)
     
-    ciop.log('DEBUG', 'Publish geotiff')
+    ciop.log('INFO', 'Creating COG: {}'.format(cog_output))
     
-    ciop.publish(os.path.join(ciop.tmp_dir, output_name), metalink=True)
+    cog(output_name,cog_output)
+    
+    ciop.log('INFO', 'Publishing COG')
+    
+    ciop.publish(os.path.join(ciop.tmp_dir, cog_output), metalink=True)
     
 try:
     main()
