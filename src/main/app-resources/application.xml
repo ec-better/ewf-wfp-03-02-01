@@ -4,8 +4,12 @@
     <jobTemplate id="hazard-index">
         <streamingExecutable>/application/hazard-index/run.py</streamingExecutable>
         <defaultParameters>
-           <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime">better-wfp-03-02-01</parameter>
-           <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime">AKCp5ekcV3h4Gx5earMaXXnq7ESSvHkHHMjsQBUGMJV6y9n1WKc4Qe8SHwU2oW3FA9tMCwAFj</parameter>
+           <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime"></parameter>
+           <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime"></parameter>
+           <parameter id='bbox' title='Bounding Box of the AOI (ulx uly lrx lry)' abstract='Bounding Box of the AOI (ulx uly lrx lry)' scope="runtime">23.90,18.32,51.74,-5.91</parameter>
+           <parameter id='series_startdate' title='Series start date' abstract='Series start date' scope="runtime">2014-01-01T00:00:00Z</parameter>
+           <parameter id='series_enddate' title='Series end date' abstract='Series end date' scope="runtime">2020-06-30T23:59:59.99Z</parameter>
+           <parameter id='catalogue_osd' title='Series catalogue osd' abstract='Series catalogue osd' scope="runtime">https://catalog.terradue.com/chirps-dekad/description</parameter>
        </defaultParameters>
         <defaultJobconf>
          <property id="ciop.job.max.tasks">1</property>
@@ -18,7 +22,7 @@
     <node id="hazard-index">
       <job id="hazard-index"/>
       <sources>
-        <source id="source" title="CHIRPS dekad" abstract="CHIRPS dekad" refid="string:list" scope="runtime">https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.1,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.2,https://catalog.terradue.com/chirps-dekad/search?uid=chirps-v2.0.2020.01.3</source>
+        <source id="source" title="CHIRPS dekad" abstract="CHIRPS dekad dummy" refid="string:list" scope="runtime">dummy</source>
       </sources>
     </node>
   </workflow>
