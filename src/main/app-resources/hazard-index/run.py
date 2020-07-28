@@ -230,7 +230,7 @@ def main():
         
             entry = ciop.search(end_point=line.rstrip(),
                                    params=search_params,
-                                   output_fields='self,startdate,enddate,enclosure,title',
+                                   output_fields='self,startdate,enddate,enclosure,title,wkt',
                                    model='GeoTime',
                                    timeout=1200000,
                                    creds=creds)[0]
@@ -239,7 +239,7 @@ def main():
         
             entry = ciop.search(end_point=line.rstrip(),
                                    params=search_params,
-                                   output_fields='self,startdate,enddate,enclosure,title',
+                                   output_fields='self,startdate,enddate,enclosure,title,wkt',
                                    model='GeoTime',
                                    timeout=1200000)[0]
         
@@ -325,8 +325,9 @@ def main():
     q = 100 * vfunc_inv_logit(teta)
     
     
-    temp_output_name = 'temp_rainfall_hazard_index_{}_{}.tif'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
+    temp_output_name = 'temp_rainfall_hazard_index_{}_{}.tif'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'),
                                                                      search['enddate_dt'].max().strftime('%Y_%m_%d'))
+                                                                     
     
     ciop.log('DEBUG', 'Save as temp geotiff: {}'.format(temp_output_name))
     
@@ -354,9 +355,27 @@ def main():
     
     cog(temp_output_name,output_name)
     
+    
+    #Create properties file
+    out_properties = output_name.split('.')[0] + '.properties'
+    
+    with open(out_properties, 'w') as file:
+
+        file.write('title=Rainfall-related hazard index for season {0} / {1}\n'.format(search['startdate_dt'].min().strftime('%Y-%m-%d'),
+                                                                                       search['enddate_dt'].max().strftime('%Y-%m-%d')))
+        
+        date='{}/{}'.format(search['startdate_dt'].min().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                            search['enddate_dt'].max().strftime('%Y-%m-%dT%H:%M:%SZ'))
+        
+        file.write('date={}\n'.format(date))
+        
+        file.write('geometry={0}'.format(search['wkt'].iloc[0]))
+    
     ciop.log('INFO', 'Publishing COG')
     
     ciop.publish(os.path.join(ciop.tmp_dir, output_name), metalink=True)
+    ciop.publish(os.path.join(ciop.tmp_dir, out_properties), metalink=True)
+    
     
 try:
     main()
