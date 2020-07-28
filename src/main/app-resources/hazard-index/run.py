@@ -180,80 +180,74 @@ def main():
     
     ciop.log('INFO', 'username: "{}"'.format(parameters['username']))
     
-    #RBN: POLYGON ((23.90 -5.90, 23.90 18.30, 51.74 18.32, 51.74 -5.91, 23.90 -5.91))
-    parameters['bbox'] = ciop.getparam('bbox').split(',')
-    ulx = float(parameters['bbox'][0])
-    uly = float(parameters['bbox'][1])
-    lrx = float(parameters['bbox'][2])
-    lry = float(parameters['bbox'][3])
-    
     search_params = dict()
     
 ###################################################################################################
-    # This is the version for tg-queue-one-time-series needed for the time-series productions 
+    # This is the version for tg-queue-one-time-series needed for long time-series productions 
     #
     
-    parameters['series_startdate'] = ciop.getparam('series_start_date')
-    parameters['series_enddate'] = ciop.getparam('series_end_date')
-    parameters['catalogue_osd'] = ciop.getparam('catalogue_osd')
+    #parameters['series_startdate'] = ciop.getparam('series_start_date')
+    #parameters['series_enddate'] = ciop.getparam('series_end_date')
+    #parameters['catalogue_osd'] = ciop.getparam('catalogue_osd')
     
-    search_params['start'] = ciop.getparam('series_startdate')
-    search_params['stop'] = ciop.getparam('series_enddate')
-    search_params['count'] = 'unlimited'
+    #search_params['start'] = ciop.getparam('series_startdate')
+    #search_params['stop'] = ciop.getparam('series_enddate')
+    #search_params['count'] = 'unlimited'
     
-    ciop.log('INFO', 'Looking for data from {} to {}:'.format(search_params['start'],search_params['stop']))
+    #ciop.log('INFO', 'Looking for data from {} to {}:'.format(search_params['start'],search_params['stop']))
     
-    if parameters['username'] is not None:
-        creds = '{}:{}'.format(parameters['username'],
-                               parameters['api_key'])
-        search = pd.DataFrame(ciop.search(end_point=parameters['catalogue_osd'],
-                                          params=search_params,
-                                          output_fields='self,startdate,enddate,enclosure,title',
-                                          model='GeoTime',
-                                          timeout=1200000,
-                                          creds=creds))
-    else:
-        search = pd.DataFrame(ciop.search(end_point=parameters['catalogue_osd'],
-                                          params=search_params,
-                                          output_fields='self,startdate,enddate,enclosure,title',
-                                          model='GeoTime',
-                                          timeout=1200000))
-    ciop.log('INFO', 'Inputs: \n')
-    for row in search.iterrows():
-        ciop.log('INFO', row[1]['self'])
-    
-#    temp_results = []
-#    
-#    for line in sys.stdin:
-#        
-#        ciop.log('INFO', 'Line: {}'.format(line.rstrip()))
-#        
-#        
-#        if parameters['username'] is not None:
-#            
-#            creds = '{}:{}'.format(parameters['username'],
-#                                   parameters['api_key'])
-#        
-#            entry = ciop.search(end_point=line.rstrip(),
-#                                   params=search_params,
-#                                   output_fields='self,startdate,enddate,enclosure,title',
-#                                   model='GeoTime',
-#                                   timeout=1200000,
-#                                   creds=creds)[0]
-#           
-#        else:
-#        
-#            entry = ciop.search(end_point=line.rstrip(),
-#                                   params=search_params,
-#                                   output_fields='self,startdate,enddate,enclosure,title',
-#                                   model='GeoTime',
-#                                   timeout=1200000)[0]
-#        
-#        temp_results.append(entry)  
-#
-#    search = gpd.GeoDataFrame(temp_results)
-#    
+    #if parameters['username'] is not None:
+    #    creds = '{}:{}'.format(parameters['username'],
+    #                           parameters['api_key'])
+    #    search = pd.DataFrame(ciop.search(end_point=parameters['catalogue_osd'],
+    #                                      params=search_params,
+    #                                      output_fields='self,startdate,enddate,enclosure,title',
+    #                                      model='GeoTime',
+    #                                      timeout=1200000,
+    #                                      creds=creds))
+    #else:
+    #    search = pd.DataFrame(ciop.search(end_point=parameters['catalogue_osd'],
+    #                                      params=search_params,
+    #                                      output_fields='self,startdate,enddate,enclosure,title',
+    #                                      model='GeoTime',
+    #                                      timeout=1200000))
+    #ciop.log('INFO', 'Inputs: \n')
+    #for row in search.iterrows():
+    #    ciop.log('INFO', row[1]['self'])
 ####################################################################################################
+
+    temp_results = []
+    
+    for line in sys.stdin:
+        
+        ciop.log('INFO', 'Line: {}'.format(line.rstrip()))
+        
+        
+        if parameters['username'] is not None:
+            
+            creds = '{}:{}'.format(parameters['username'],
+                                   parameters['api_key'])
+        
+            entry = ciop.search(end_point=line.rstrip(),
+                                   params=search_params,
+                                   output_fields='self,startdate,enddate,enclosure,title',
+                                   model='GeoTime',
+                                   timeout=1200000,
+                                   creds=creds)[0]
+           
+        else:
+        
+            entry = ciop.search(end_point=line.rstrip(),
+                                   params=search_params,
+                                   output_fields='self,startdate,enddate,enclosure,title',
+                                   model='GeoTime',
+                                   timeout=1200000)[0]
+        
+        temp_results.append(entry)  
+
+    search = gpd.GeoDataFrame(temp_results)
+    
+
     
     # Convert startdate to pd.datetime and sort by date
     search['startdate_dt'] = pd.to_datetime(search.startdate)
@@ -331,9 +325,8 @@ def main():
     q = 100 * vfunc_inv_logit(teta)
     
     
-    temp_output_name = 'temp_rainfall_hazard_index_{}_{}_{}.tif'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
-                                                                        search['enddate_dt'].max().strftime('%Y_%m_%d'),
-                                                                        '_'.join(parameters['bbox']))
+    temp_output_name = 'temp_rainfall_hazard_index_{}_{}.tif'.format(search['startdate_dt'].min().strftime('%Y_%m_%d'), 
+                                                                     search['enddate_dt'].max().strftime('%Y_%m_%d'))
     
     ciop.log('DEBUG', 'Save as temp geotiff: {}'.format(temp_output_name))
     
@@ -351,34 +344,19 @@ def main():
     ds_tif.SetProjection(projection)
     ds_tif.GetRasterBand(1).WriteArray(q)
     ds_tif.GetRasterBand(1).SetDescription('Q')
-    #ds_tif.FlushCache()
+    ds_tif.FlushCache()
     
     
     
     output_name = '_'.join(temp_output_name.split('_')[1:])
     
-    ciop.log('INFO', 'Creating AOI-cropped GeoTiff: {}'.format(output_name))
-                                                                    
-    ds = gdal.Open(temp_output_name, gdal.OF_READONLY)
-    ds = gdal.Translate(output_name, 
-                        ds_tif, 
-                        projWin = [ulx, uly, lrx, lry], 
-                        projWinSRS = 'EPSG:4326')
+    ciop.log('INFO', 'Creating COG: {}'.format(output_name))
     
-    ds=None
-    ds_tif.FlushCache()
-    
-    os.remove(temp_output_name)
-    
-    cog_output = 'COG_{}'.format(output_name)
-    
-    ciop.log('INFO', 'Creating COG: {}'.format(cog_output))
-    
-    cog(output_name,cog_output)
+    cog(temp_output_name,output_name)
     
     ciop.log('INFO', 'Publishing COG')
     
-    ciop.publish(os.path.join(ciop.tmp_dir, cog_output), metalink=True)
+    ciop.publish(os.path.join(ciop.tmp_dir, output_name), metalink=True)
     
 try:
     main()
